@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.3.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.3.xsd">
+
+<!-- 관련 디스패치가 다른곳에 생성되어 있어 중복되도 무관 -->
+<!-- 선언적 트랜잭션 : <tx:advice>태그를 이용한 트랜잭션 -->
+
+<!-- Spring JDBC나 Mybatis를 이용해서 DB연동을 처리하는 경우
+	     DataSourceTransactionManager이 트랜잭션 관리자로 사용된다. -->
+	<!-- [4] TransactionManager 빈 선언 -->
+	<bean id="transactionManager"
+	    class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+	    <property name="dataSource" ref="dataSource" />    
+	</bean>
+	
+	<!-- [5] 선언적 트랜잭션 : <tx:advice>태그를 이용한 트랜잭션 처리 -->
+	<tx:advice id="txAdvice" transaction-manager="transactionManager">
+	<tx:attributes>
+	<tx:method name="*Process" rollback-for="org.springframework.dao.DuplicateKeyException"/>
+	<!-- Process로 끝나는 이름이 저것을 띄우게 되면 롤백시켜줘라 -->
+	</tx:attributes>
+	
+	</tx:advice>
+	
+	<aop:config>
+	  <aop:pointcut expression="execution(* part02.ServiceImp.insertProcess(..))" id="aa"/>
+	  <aop:advisor advice-ref="txAdvice" pointcut-ref="aa"/>
+	</aop:config>
+	
+	
+	<!-- [6] MemDaoImp 빈 선언 -->
+	<bean id="memDao" class="dao.MemDaoImp">
+	  <property name="sqlSession" ref="sqlSession" />
+	</bean>
+	
+	<!-- [7] ServiceImp 빈 선언 -->
+	<bean id="service" class="part02.ServiceImp">
+	   <property name="memDao" ref="memDao"/>	
+	   
+	</bean>
+	
+	<!-- [8] MemController 빈 선언 -->
+	<bean class="part02.MemController">
+	  <property name="svc" ref="service" />
+	</bean>
+
+
+</beans>
